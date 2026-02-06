@@ -28,26 +28,6 @@
                 </div>
                 <div id="namesPreview" class="names-preview" style="display: none;"></div>
             </div>
-            
-            <div class="upload-section" style="margin-top: 20px; opacity: 0.7;">
-                <h3 style="color: #ffd700; margin-bottom: 20px;">🖼️ העלאת תמונות מותאמות אישית</h3>
-                <p style="color: rgba(255,215,0,0.7); font-size: 0.9rem; margin-bottom: 15px;">
-                    💡 הרקע והלוגו כבר מובנים בתוכנה. אם הרקע לא מופיע, ניתן להעלות אותו כאן.
-                </p>
-                <div id="bgStatus" style="display: none; padding: 10px; margin: 10px 0; background: rgba(255,215,0,0.1); border-radius: 8px; border: 1px solid rgba(255,215,0,0.3);">
-                    <small style="color: rgba(255,215,0,0.8);">⚠️ הרקע לא נטען מהשרת. ניתן להעלות רקע מקומי.</small>
-                </div>
-                <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
-                    <div class="file-input-wrapper">
-                        <input type="file" id="backgroundFile" accept="image/*" onchange="handleBackgroundUpload(event)">
-                        <label for="backgroundFile" class="file-input-label" style="font-size: 0.9rem; padding: 10px 25px;">🖼️ החלף רקע</label>
-                    </div>
-                    <div class="file-input-wrapper">
-                        <input type="file" id="logoFile" accept="image/*" onchange="handleLogoUpload(event)">
-                        <label for="logoFile" class="file-input-label" style="font-size: 0.9rem; padding: 10px 25px;">🏛️ החלף לוגו</label>
-                    </div>
-                </div>
-            </div>
 
             <div class="stats">
                 <div class="stat-item">
@@ -265,7 +245,7 @@
             }, 10000);
         }
 
-        // שמות רצים
+        // שמות רצים - מותאם לביצועים
         function startScrollingNames() {
             const namesScrolling = document.getElementById('namesScrolling');
             const totalDuration = 4000; // 4 שניות כולל האטה
@@ -277,21 +257,33 @@
             
             let iteration = 0;
             let lastDisplayedName = '';
+            let animationFrameId = null;
+            const maxVisibleNames = 5; // הגבלת מספר שמות גלויים
 
-            scrollInterval = setInterval(() => {
+            function animate() {
                 const elapsed = Date.now() - startTime;
                 iteration++;
 
                 // שלב מהיר - שמות רצים מהר
                 if (elapsed < fastDuration) {
-                    const randomName = remainingNames[Math.floor(Math.random() * remainingNames.length)];
-                    const nameElement = document.createElement('div');
-                    nameElement.className = 'scrolling-name';
-                    nameElement.textContent = randomName;
-                    nameElement.style.animation = 'scrollName 0.08s linear';
-                    nameElement.style.fontSize = '4rem';
-                    namesScrolling.appendChild(nameElement);
-                    lastDisplayedName = randomName;
+                    if (iteration % 3 === 0) { // האטה - כל 3 frames במקום כל frame
+                        const randomName = remainingNames[Math.floor(Math.random() * remainingNames.length)];
+                        const nameElement = document.createElement('div');
+                        nameElement.className = 'scrolling-name';
+                        nameElement.textContent = randomName;
+                        nameElement.style.animation = 'scrollName 0.15s linear';
+                        nameElement.style.fontSize = '4rem';
+                        nameElement.style.willChange = 'transform';
+                        nameElement.style.transform = 'translateZ(0)'; // האצת GPU
+                        namesScrolling.appendChild(nameElement);
+                        lastDisplayedName = randomName;
+                        
+                        // הסרת שמות ישנים - רק אם יש יותר מדי
+                        const oldNames = namesScrolling.querySelectorAll('.scrolling-name');
+                        if (oldNames.length > maxVisibleNames) {
+                            oldNames[0].remove();
+                        }
+                    }
                 }
                 // שלב האטה - שמות רצים לאט יותר
                 else if (elapsed < fastDuration + slowDuration) {
@@ -299,21 +291,32 @@
                     const slowDown = 1 + (progress * 3); // האטה הדרגתית
                     
                     // הצגת שמות עם האטה
-                    if (iteration % Math.floor(slowDown * 2) === 0) {
+                    if (iteration % Math.floor(slowDown * 4) === 0) {
                         const randomName = remainingNames[Math.floor(Math.random() * remainingNames.length)];
                         const nameElement = document.createElement('div');
                         nameElement.className = 'scrolling-name';
                         nameElement.textContent = randomName;
-                        nameElement.style.animation = `scrollName ${0.1 * slowDown}s linear`;
+                        nameElement.style.animation = `scrollName ${0.15 * slowDown}s linear`;
                         nameElement.style.fontSize = (4 + progress * 2) + 'rem';
+                        nameElement.style.willChange = 'transform';
+                        nameElement.style.transform = 'translateZ(0)';
                         namesScrolling.appendChild(nameElement);
                         lastDisplayedName = randomName;
+                        
+                        // הסרת שמות ישנים
+                        const oldNames = namesScrolling.querySelectorAll('.scrolling-name');
+                        if (oldNames.length > maxVisibleNames) {
+                            oldNames[0].remove();
+                        }
                     }
                 }
                 // סיום - הצגת הזוכה
                 else {
-                    clearInterval(scrollInterval);
-                    scrollInterval = null;
+                    if (animationFrameId) {
+                        cancelAnimationFrame(animationFrameId);
+                        animationFrameId = null;
+                        window.scrollAnimationFrame = null;
+                    }
                     // ניקוי כל השמות
                     namesScrolling.innerHTML = '';
                     // הצגת הזוכה עם אפקט
@@ -327,12 +330,12 @@
                     return;
                 }
 
-                // הסרת שמות ישנים
-                const oldNames = namesScrolling.querySelectorAll('.scrolling-name');
-                if (oldNames.length > 8) {
-                    oldNames[0].remove();
-                }
-            }, 50);
+                animationFrameId = requestAnimationFrame(animate);
+                window.scrollAnimationFrame = animationFrameId;
+            }
+            
+            animationFrameId = requestAnimationFrame(animate);
+            window.scrollAnimationFrame = animationFrameId;
         }
 
         // חשיפת הזוכה
@@ -354,6 +357,11 @@
             if (scrollInterval) {
                 clearInterval(scrollInterval);
                 scrollInterval = null;
+            }
+            // ביטול requestAnimationFrame אם קיים
+            if (window.scrollAnimationFrame) {
+                cancelAnimationFrame(window.scrollAnimationFrame);
+                window.scrollAnimationFrame = null;
             }
             if (countdownInterval) {
                 clearInterval(countdownInterval);
@@ -387,22 +395,20 @@
             // הסרת השם מהרשימה
             remainingNames = remainingNames.filter(n => n !== name);
 
-            // זיקוקים מרשימים בסגנון Google Doodle
-            // זיקוקים ראשונים - מרוכזים במרכז
-            for (let i = 0; i < 5; i++) {
+            // זיקוקים מרשימים בסגנון Google Doodle - מותאם לביצועים
+            // זיקוקים ראשונים - מרוכזים במרכז (פחות זיקוקים)
+            for (let i = 0; i < 3; i++) { // הורדנו מ-5 ל-3
                 setTimeout(() => {
                     createFirework();
-                }, i * 200);
+                }, i * 300); // האטה קצת
             }
             
-            // זיקוקים נוספים - מפוזרים על המסך
+            // זיקוקים נוספים - מפוזרים על המסך (פחות זיקוקים)
             setTimeout(() => {
-                for (let i = 0; i < 10; i++) {
+                for (let i = 0; i < 6; i++) { // הורדנו מ-10 ל-6
                     setTimeout(() => {
                         createFirework();
-                        // זיקוק נוסף קצת אחרי (אפקט כפול)
-                        setTimeout(() => createFirework(), 150);
-                    }, i * 250);
+                    }, i * 350); // האטה והסרת אפקט כפול
                 }
             }, 1000);
 
@@ -436,7 +442,7 @@
             showNotification(`🎉 הזוכה הוא: ${name}`, 'success');
         }
 
-        // יצירת זיקוקים בסגנון Google Doodle
+        // יצירת זיקוקים בסגנון Google Doodle - מותאם לביצועים
         function createFirework() {
             const container = document.getElementById('fireworksContainer');
             const colors = [
@@ -459,19 +465,25 @@
             centerFirework.style.background = mainColor;
             centerFirework.style.width = '12px';
             centerFirework.style.height = '12px';
-            centerFirework.style.boxShadow = `0 0 20px ${mainColor}, 0 0 40px ${mainColor}, 0 0 60px ${mainColor}`;
+            centerFirework.style.boxShadow = `0 0 20px ${mainColor}, 0 0 40px ${mainColor}`;
             centerFirework.style.animation = 'fireworkPulse 0.4s ease-out forwards';
+            centerFirework.style.willChange = 'transform, opacity';
+            centerFirework.style.transform = 'translateZ(0)';
             container.appendChild(centerFirework);
             
-            // יצירת חלקיקים שמתפוצצים בצורה מעגלית (כמו Google Doodle)
-            const particleCount = 30 + Math.floor(Math.random() * 20);
+            // יצירת חלקיקים שמתפוצצים בצורה מעגלית - פחות חלקיקים לביצועים טובים יותר
+            const particleCount = 20 + Math.floor(Math.random() * 15); // הורדנו מ-30-50 ל-20-35
+            
+            // שימוש ב-DocumentFragment לביצועים טובים יותר
+            const fragment = document.createDocumentFragment();
+            
             for (let i = 0; i < particleCount; i++) {
                 const particle = document.createElement('div');
                 particle.className = 'firework-particle';
                 
                 // זווית מעגלית אחידה
                 const angle = (Math.PI * 2 * i) / particleCount;
-                const distance = 80 + Math.random() * 120;
+                const distance = 80 + Math.random() * 100; // קצת פחות מרחק
                 const tx = Math.cos(angle) * distance;
                 const ty = Math.sin(angle) * distance;
                 
@@ -481,20 +493,16 @@
                 particle.style.left = x + 'px';
                 particle.style.top = y + 'px';
                 particle.style.background = particleColor;
-                particle.style.boxShadow = `0 0 8px ${particleColor}, 0 0 16px ${particleColor}, 0 0 24px ${particleColor}`;
+                particle.style.boxShadow = `0 0 8px ${particleColor}, 0 0 16px ${particleColor}`;
                 particle.style.setProperty('--tx', tx + 'px');
                 particle.style.setProperty('--ty', ty + 'px');
+                particle.style.willChange = 'transform, opacity';
+                particle.style.transform = 'translateZ(0)';
                 const duration = 0.8 + Math.random() * 0.4;
                 particle.style.animation = `particleMove ${duration}s cubic-bezier(0.4, 0, 0.2, 1) forwards`;
                 particle.style.animationDelay = Math.random() * 0.05 + 's';
                 
-                // אפקט זוהר נוסף לחלקיקים גדולים יותר
-                if (Math.random() > 0.7) {
-                    particle.style.width = '6px';
-                    particle.style.height = '6px';
-                }
-                
-                container.appendChild(particle);
+                fragment.appendChild(particle);
                 
                 // הסרת החלקיק אחרי האנימציה
                 setTimeout(() => {
@@ -504,6 +512,8 @@
                 }, 1200);
             }
             
+            container.appendChild(fragment);
+            
             // הסרת הזיקוק המרכזי
             setTimeout(() => {
                 if (centerFirework.parentNode) {
@@ -512,11 +522,15 @@
             }, 600);
         }
 
-        // יצירת קונפטי
+        // יצירת קונפטי - מותאם לביצועים
         function createConfetti() {
             const colors = ['#ffd700', '#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#6c5ce7'];
+            const confettiCount = 50; // הורדנו מ-100 ל-50
             
-            for (let i = 0; i < 100; i++) {
+            // שימוש ב-DocumentFragment לביצועים טובים יותר
+            const fragment = document.createDocumentFragment();
+            
+            for (let i = 0; i < confettiCount; i++) {
                 setTimeout(() => {
                     const confetti = document.createElement('div');
                     confetti.className = 'confetti';
@@ -526,11 +540,19 @@
                     confetti.style.height = (5 + Math.random() * 10) + 'px';
                     confetti.style.animationDelay = Math.random() * 2 + 's';
                     confetti.style.animationDuration = (2 + Math.random() * 2) + 's';
-                    document.body.appendChild(confetti);
+                    confetti.style.willChange = 'transform, opacity';
+                    confetti.style.transform = 'translateZ(0)';
+                    fragment.appendChild(confetti);
                     
-                    setTimeout(() => confetti.remove(), 5000);
-                }, i * 20);
+                    setTimeout(() => {
+                        if (confetti.parentNode) {
+                            confetti.remove();
+                        }
+                    }, 5000);
+                }, i * 30); // האטה קצת - מ-20ms ל-30ms
             }
+            
+            document.body.appendChild(fragment);
         }
 
         // התחלת הגרלה נוספת (מהתצוגה)
@@ -549,6 +571,11 @@
             if (scrollInterval) {
                 clearInterval(scrollInterval);
                 scrollInterval = null;
+            }
+            // ביטול requestAnimationFrame אם קיים
+            if (window.scrollAnimationFrame) {
+                cancelAnimationFrame(window.scrollAnimationFrame);
+                window.scrollAnimationFrame = null;
             }
             if (countdownInterval) {
                 clearInterval(countdownInterval);
@@ -621,80 +648,9 @@
             }, 3000);
         }
 
-        // טעינת רקע מקומי
-        function handleBackgroundUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                // עדכון הרקע ב-::before
-                const style = document.createElement('style');
-                style.textContent = `
-                    body::before {
-                        background-image: url(${e.target.result}) !important;
-                        opacity: 0.8 !important;
-                    }
-                `;
-                document.head.appendChild(style);
-                document.body.classList.remove('no-bg-image');
-                showNotification('רקע עודכן בהצלחה!', 'success');
-            };
-            reader.readAsDataURL(file);
-        }
-
-        // טעינת לוגו מקומי
-        function handleLogoUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const logoImg = document.querySelector('.logo-container img');
-                if (logoImg) {
-                    logoImg.src = e.target.result;
-                    logoImg.style.display = 'block';
-                    showNotification('לוגו עודכן בהצלחה!', 'success');
-                }
-            };
-            reader.readAsDataURL(file);
-        }
-
         // טעינה ראשונית
         window.addEventListener('load', function() {
             console.log('🎲 מערכת הגרלות מתקדמת נטענה בהצלחה!');
-            console.log('🖼️ רקע: https://i.postimg.cc/WzWk5zLg/rq\'-ltwknt-hgrlwt-sl-ht-t.png');
-            console.log('🏛️ לוגו: https://i.postimg.cc/mLbCBdyy/lwgw-t-t-dhws.png');
-            
-            // בדיקת טעינת רקע
-            const bgImg = new Image();
-            let bgLoaded = false;
-            const bgStatusEl = document.getElementById('bgStatus');
-            
-            bgImg.onload = function() {
-                console.log('✅ רקע נטען בהצלחה');
-                bgLoaded = true;
-                document.body.classList.remove('no-bg-image');
-                if (bgStatusEl) bgStatusEl.style.display = 'none';
-            };
-            
-            bgImg.onerror = function() {
-                console.warn('⚠️ רקע לא נטען מהקישור המקורי - משתמש ברקע חלופי');
-                document.body.classList.add('no-bg-image');
-                if (bgStatusEl) bgStatusEl.style.display = 'block';
-            };
-            
-            // נסה לטעון את הרקע
-            bgImg.src = 'https://i.postimg.cc/WzWk5zLg/rq\'-ltwknt-hgrlwt-sl-ht-t.png';
-            
-            // בדיקה נוספת אחרי 2 שניות
-            setTimeout(() => {
-                if (!bgLoaded && (!bgImg.complete || bgImg.naturalWidth === 0)) {
-                    document.body.classList.add('no-bg-image');
-                    if (bgStatusEl) bgStatusEl.style.display = 'block';
-                    console.log('💡 טיפ: ניתן להעלות רקע מקומי דרך הכפתור "החלף רקע"');
-                }
-            }, 2000);
             
             // בדיקת טעינת לוגו
             const logoImg = document.querySelector('.logo-container img');
@@ -704,7 +660,7 @@
                     this.style.display = 'block';
                 };
                 logoImg.onerror = function() {
-                    console.warn('⚠️ לוגו לא נטען - ניתן להעלות לוגו מקומי');
+                    console.warn('⚠️ לוגו לא נטען');
                 };
             }
         });
