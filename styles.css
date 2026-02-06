@@ -12,7 +12,9 @@ body {
     color: #ffffff;
     min-height: 100vh;
     overflow-x: hidden;
+    overflow-y: auto;
     position: relative;
+    -webkit-overflow-scrolling: touch;
 }
 
 body::before {
@@ -58,8 +60,11 @@ body::after {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     padding: 20px;
+    padding-bottom: 60px;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .logo-container {
@@ -90,9 +95,10 @@ body::after {
 
 .main-panel {
     background: linear-gradient(135deg, rgba(0, 0, 0, 0.98) 0%, rgba(20, 20, 20, 0.99) 100%);
-    backdrop-filter: blur(20px);
+    backdrop-filter: blur(10px);
     border-radius: 30px;
     padding: 40px;
+    padding-bottom: 60px;
     border: 2px solid rgba(255, 215, 0, 0.5);
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9), 0 0 50px rgba(255, 215, 0, 0.2), inset 0 0 30px rgba(0, 0, 0, 0.5);
     max-width: 900px;
@@ -100,15 +106,21 @@ body::after {
     text-align: center;
     position: relative;
     z-index: 11;
+    margin: 20px 0;
+    margin-bottom: 40px;
+    overflow: visible;
+    min-height: fit-content;
 }
 
 h1 {
     font-size: 3rem;
     font-weight: 900;
     color: #ffd700;
-    text-shadow: 0 0 30px rgba(255, 215, 0, 0.8), 0 0 60px rgba(255, 215, 0, 0.4);
+    text-shadow: 0 0 25px rgba(255, 215, 0, 0.7), 0 0 50px rgba(255, 215, 0, 0.4);
     margin-bottom: 10px;
     animation: titleGlow 2s ease-in-out infinite;
+    will-change: text-shadow;
+    transform: translateZ(0);
 }
 
 @keyframes titleGlow {
@@ -125,9 +137,11 @@ h1 {
 .upload-section {
     margin: 30px 0;
     padding: 30px;
+    padding-bottom: 40px;
     background: rgba(255, 215, 0, 0.05);
     border-radius: 15px;
     border: 2px dashed rgba(255, 215, 0, 0.3);
+    overflow: visible;
 }
 
 .file-input-wrapper {
@@ -239,6 +253,9 @@ h1 {
     align-items: center;
     justify-content: center;
     flex-direction: column;
+    will-change: contents;
+    transform: translateZ(0);
+    backface-visibility: hidden;
 }
 
 .lottery-display.active {
@@ -257,8 +274,11 @@ h1 {
     font-size: 15rem;
     font-weight: 900;
     color: #ffd700;
-    text-shadow: 0 0 50px rgba(255, 215, 0, 0.8), 0 0 100px rgba(255, 215, 0, 0.6);
+    text-shadow: 0 0 40px rgba(255, 215, 0, 0.7), 0 0 80px rgba(255, 215, 0, 0.5);
     animation: countdownPulse 0.5s ease-out;
+    will-change: transform, opacity;
+    transform: translateZ(0);
+    backface-visibility: hidden;
 }
 
 @keyframes countdownPulse {
@@ -277,21 +297,28 @@ h1 {
     display: flex;
     align-items: center;
     justify-content: center;
+    will-change: contents;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000px;
 }
 
 .scrolling-name {
     font-size: 4rem;
     font-weight: 900;
     color: #ffd700;
-    text-shadow: 0 0 30px rgba(255, 215, 0, 0.8);
+    text-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
     white-space: nowrap;
-    animation: scrollName 0.1s linear;
+    animation: scrollName 0.15s linear;
     position: absolute;
+    will-change: transform;
+    transform: translateZ(0);
+    backface-visibility: hidden;
 }
 
 @keyframes scrollName {
-    from { transform: translateX(100%); }
-    to { transform: translateX(-100%); }
+    from { transform: translate3d(100%, 0, 0); }
+    to { transform: translate3d(-100%, 0, 0); }
 }
 
 .winner-display {
@@ -351,6 +378,9 @@ h1 {
     pointer-events: none;
     z-index: 5003;
     overflow: hidden;
+    will-change: contents;
+    contain: layout style paint;
+    transform: translateZ(0);
 }
 
 .firework {
@@ -359,6 +389,9 @@ h1 {
     height: 6px;
     border-radius: 50%;
     pointer-events: none;
+    will-change: transform, opacity;
+    transform: translateZ(0);
+    backface-visibility: hidden;
 }
 
 .firework-particle {
@@ -367,6 +400,9 @@ h1 {
     height: 4px;
     border-radius: 50%;
     pointer-events: none;
+    will-change: transform, opacity;
+    transform: translateZ(0);
+    backface-visibility: hidden;
 }
 
 @keyframes fireworkExplode {
@@ -383,15 +419,15 @@ h1 {
 @keyframes particleMove {
     0% {
         opacity: 1;
-        transform: translate(0, 0) scale(1);
+        transform: translate3d(0, 0, 0) scale(1);
     }
     50% {
         opacity: 0.8;
-        transform: translate(calc(var(--tx) * 0.5), calc(var(--ty) * 0.5)) scale(0.7);
+        transform: translate3d(calc(var(--tx) * 0.5), calc(var(--ty) * 0.5), 0) scale(0.7);
     }
     100% {
         opacity: 0;
-        transform: translate(var(--tx), var(--ty)) scale(0.2);
+        transform: translate3d(var(--tx), var(--ty), 0) scale(0.2);
     }
 }
 
@@ -413,15 +449,18 @@ h1 {
     background: #ffd700;
     position: absolute;
     animation: confettiFall 3s linear forwards;
+    will-change: transform, opacity;
+    transform: translateZ(0);
+    backface-visibility: hidden;
 }
 
 @keyframes confettiFall {
     0% {
-        transform: translateY(-100vh) rotate(0deg);
+        transform: translate3d(0, -100vh, 0) rotate(0deg);
         opacity: 1;
     }
     100% {
-        transform: translateY(100vh) rotate(720deg);
+        transform: translate3d(0, 100vh, 0) rotate(720deg);
         opacity: 0;
     }
 }
@@ -458,8 +497,10 @@ h1 {
     max-height: 300px;
     overflow-y: auto;
     padding: 20px;
+    padding-bottom: 30px;
     background: rgba(0, 0, 0, 0.5);
     border-radius: 15px;
+    margin-bottom: 20px;
 }
 
 .winner-item {
